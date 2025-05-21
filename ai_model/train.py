@@ -1,50 +1,40 @@
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from model import build_model
-
-# Constants - update paths & classes as needed
-TRAIN_DIR = "../fashion_data/train"
-VALIDATION_DIR = "../fashion_data/validation"
-NUM_CLASSES = 5  # Adjust this to your actual classes count
-BATCH_SIZE = 32
-EPOCHS = 10
-IMG_SIZE = (224, 224)
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from tensorflow.keras.datasets import fashion_mnist
 
 def train():
-    # Data Augmentation for training (keeps it real, no overfitting)
-    train_datagen = ImageDataGenerator(
-        rescale=1./255,
-        rotation_range=15,
-        width_shift_range=0.1,
-        height_shift_range=0.1,
-        horizontal_flip=True
-    )
-    val_datagen = ImageDataGenerator(rescale=1./255)
+    # Load and preprocess the Fashion MNIST dataset
+    (train_images, train_labels), (test_images, test_labels) = fashion_mnist.load_data()
 
-    train_generator = train_datagen.flow_from_directory(
-        TRAIN_DIR,
-        target_size=IMG_SIZE,
-        batch_size=BATCH_SIZE,
-        class_mode='categorical'
-    )
+    # Normalize pixel values and add channel dimension
+    train_images = train_images / 255.0
+    test_images = test_images / 255.0
 
-    validation_generator = val_datagen.flow_from_directory(
-        VALIDATION_DIR,
-        target_size=IMG_SIZE,
-        batch_size=BATCH_SIZE,
-        class_mode='categorical'
-    )
+    train_images = train_images[..., None]  # shape: (samples, 28, 28, 1)
+    test_images = test_images[..., None]
 
-    model = build_model(NUM_CLASSES)
+    # Build the model
+    model = models.Sequential([
+        layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)),
+        layers.MaxPooling2D((2, 2)),
+        layers.Conv2D(64, (3, 3), activation='relu'),
+        layers.MaxPooling2D((2, 2)),
+        layers.Flatten(),
+        layers.Dense(128, activation='relu'),
+        layers.Dense(10, activation='softmax')
+    ])
 
-    model.fit(
-        train_generator,
-        epochs=EPOCHS,
-        validation_data=validation_generator
-    )
+    # Compile the model
+    model.compile(optimizer='adam',
+                  loss='sparse_categorical_crossentropy',
+                  metrics=['accuracy'])
 
-    # Save the trained model
+    # Train the model
+    model.fit(train_images, train_labels, epochs=5, validation_data=(test_images, test_labels))
+
+    # Save the model
     model.save("trained_model.h5")
-    print("Model training completed and saved as trained_model.h5")
+    print("✅ Model trained and saved to trained_model.h5")
 
 if __name__ == "__main__":
     train()
