@@ -1,13 +1,11 @@
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing.image import img_to_array, load_img
+# ai_model/predict.py
 import numpy as np
+from tensorflow.keras.models import load_model
+from .preprocess import preprocess_image  # your preprocessing logic
 
-model = load_model("ai_model/trained_model.h5")
-classes = ['t-shirt', 'dress', 'jeans', 'shirt', 'jacket']
+model = load_model('ai_model/trained_model.h5')  # ✅ relative path
 
-def predict_image(img_path):
-    img = load_img(img_path, target_size=(224, 224))
-    img = img_to_array(img) / 255.0
-    img = np.expand_dims(img, axis=0)
-    pred = model.predict(img)
-    return classes[np.argmax(pred)]
+def predict_image(image):
+    processed = preprocess_image(image)
+    prediction = model.predict(np.expand_dims(processed, axis=0))
+    return prediction.argmax(axis=1)[0]  # e.g., return predicted class index
